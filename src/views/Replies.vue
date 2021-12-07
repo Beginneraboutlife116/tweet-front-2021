@@ -3,6 +3,7 @@
     <header class="replies__header">
       <div class="replies__header__title">
         <svg
+          @click="$router.back()"
           width="23"
           height="24"
           viewBox="0 0 23 24"
@@ -19,7 +20,10 @@
       <div class="main__post">
         <router-link :to="`/home/${tweet.User.id}`" class="main__post__info">
           <img
-            :src="tweet.User.avatar || 'https://i.pinimg.com/originals/1f/7c/70/1f7c70f9b5b5f0e1972a4888468ed84c.jpg'"
+            :src="
+              tweet.User.avatar ||
+              'https://i.pinimg.com/originals/1f/7c/70/1f7c70f9b5b5f0e1972a4888468ed84c.jpg'
+            "
             alt="avatar"
             aria-label="avatar"
           />
@@ -40,7 +44,11 @@
             <span class="text">回覆</span>
           </div>
           <div>
-            <span @click.prevent.stop="toggleReplyModal(tweet.id)" class="count">{{ tweet.likeCounts }}</span>
+            <span
+              @click.prevent.stop="toggleReplyModal(tweet.id)"
+              class="count"
+              >{{ tweet.likeCounts }}</span
+            >
             <span class="text">喜歡次數</span>
           </div>
         </div>
@@ -98,53 +106,16 @@
         </div>
       </div>
     </header>
+    <Spinner v-if="isLoading" />
     <Reply v-for="reply in replies" :key="reply.id" :initial-reply="reply" />
   </div>
 </template>
 
 <script>
 import Reply from './../components/Reply'
-import { fromNowFilter } from './../mixins/helpers'
-const dummyData = {
-  replies: [
-    {
-      id: 1,
-      comment:
-        'amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sitLorem ipsum dolor sit amet',
-      createdAt: '2011-12-02T18:42:25.000Z',
-      User: {
-        id: 11,
-        name: 'name11',
-        account: 'account11',
-        avatar: null
-      }
-    },
-    {
-      id: 2,
-      comment:
-        'amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sitLorem ipsum dolor sit amet',
-      createdAt: '2011-12-02T16:44:25.000Z',
-      User: {
-        id: 22,
-        name: 'name22',
-        account: 'account22',
-        avatar: null
-      }
-    },
-    {
-      id: 3,
-      comment:
-        'amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sitLorem ipsum dolor sit amet',
-      createdAt: '2011-12-02T16:44:25.000Z',
-      User: {
-        id: 33,
-        name: 'name33',
-        account: 'account33',
-        avatar: null
-      }
-    }
-  ]
-}
+import { fromNowFilter, Toast } from './../mixins/helpers'
+import repliesAPI from './../apis/replies'
+import Spinner from './../components/Spinner'
 
 const postData = {
   id: 0,
@@ -165,7 +136,8 @@ const postData = {
 export default {
   mixins: [fromNowFilter],
   components: {
-    Reply
+    Reply,
+    Spinner
   },
   data () {
     return {
@@ -188,16 +160,48 @@ export default {
     }
   },
   created () {
-    this.fetchReplies()
+    const { tweetId } = this.$route.params
+    this.fetchReplies(tweetId)
     this.fetchPost()
   },
+  beforeRouteUpdate (to, from, next) {
+    const { tweetId } = to.params
+    this.fetchReplies(tweetId)
+    next()
+  },
   methods: {
-    fetchReplies () {
-      this.replies = dummyData.replies.map((data) => {
-        return {
-          ...data
-        }
-      })
+    async fetchReplies (tweetId) {
+      try {
+        this.isLoading = true
+        const { data } = await repliesAPI.getReplies(tweetId)
+        console.log(data)
+        this.replies = data.map((data) => {
+          const replyId = data.id
+          const { account, avatar, id, name } = data.User
+          const { comment, createdAt } = data
+          console.log(account, avatar, id, name, comment, createdAt)
+          return {
+            id: replyId,
+            comment,
+            createdAt,
+            tweet: {
+              id: this.$route.params.tweetId,
+              User: {
+                id,
+                account,
+                avatar
+              }
+            }
+          }
+        })
+        this.isLoading = false
+      } catch (error) {
+        this.isLoading = false
+        Toast.fire({
+          icon: 'error',
+          title: '無法獲取個人資料，請稍後再嘗試'
+        })
+      }
     },
     fetchPost () {
       this.tweet = {
@@ -240,7 +244,8 @@ export default {
       font-weight: bold;
     }
     svg {
-      margin: 1.5rem 4.1rem 1.6rem 0;
+      margin: 1.5rem 4.1rem 1.6rem 1.5rem;
+      cursor: pointer;
     }
   }
 }
@@ -305,7 +310,7 @@ export default {
     padding: 2rem 0 0 0;
     cursor: pointer;
     &--reply {
-      width: calc( 155 / 600 * 100%);
+      width: calc(155 / 600 * 100%);
     }
   }
 }
