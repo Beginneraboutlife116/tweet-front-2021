@@ -14,7 +14,7 @@ import Spinner from './../components/Spinner'
 import AdminTweet from './../components/AdminTweet'
 import { Toast } from './../mixins/helpers'
 import tweetsAPI from './../apis/tweets'
-
+import adminAPI from './../apis/admin'
 export default {
   name: 'profile-tweets',
   components: {
@@ -57,10 +57,23 @@ export default {
         })
       }
     },
-    deletePost (tweetId) {
-      this.tweets = this.tweets.filter(
-        (tweet) => tweet.id !== tweetId
-      )
+    async deletePost (tweetId) {
+      try {
+        console.log(tweetId)
+        const { data } = await adminAPI.delete(tweetId)
+        console.log(data)
+        if (data.status === 'error') {
+          throw new Error(data.message)
+        }
+        this.tweets = this.tweets.filter(
+          (tweet) => tweet.id !== tweetId
+        )
+      } catch (error) {
+        Toast.fire({
+          icon: 'error',
+          title: '無法刪除餐廳'
+        })
+      }
     }
   }
 }
