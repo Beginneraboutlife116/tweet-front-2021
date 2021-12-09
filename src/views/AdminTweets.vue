@@ -4,7 +4,8 @@
       <h1 class="admin-tweets__header--title">推文清單</h1>
     </header>
     <Spinner v-if="isLoading" />
-    <AdminTweet v-for="tweet in tweets" :key="tweet.id" :initial-tweet="tweet" />
+    <AdminTweet v-for="tweet in tweets" :key="tweet.id" :initial-tweet="tweet"
+    @delete-post="deletePost"/>
    </div>
 </template>
 
